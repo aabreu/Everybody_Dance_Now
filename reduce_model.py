@@ -2,7 +2,6 @@ import argparse
 import tensorflow as tf
 import os
 
-CROP_SIZE = 256  # scale_size = CROP_SIZE
 ngf = 64
 ndf = 64
 
@@ -70,7 +69,7 @@ def deconv(batch_input, out_channels):
         return conv
 
 
-def process_image(x):
+def process_image(x, crop_size):
     with tf.name_scope('load_images'):
         raw_input = tf.image.convert_image_dtype(x, dtype=tf.float32)
 
@@ -85,20 +84,20 @@ def process_image(x):
 
     # synchronize seed for image operations so that we do the same operations to both
     # input and output images
-    def transform(image):
+    def transform(image, crop_size):
         r = image
 
         # area produces a nice downscaling, but does nearest neighbor for upscaling
         # assume we're going to be doing downscaling here
-        r = tf.image.resize_images(r, [CROP_SIZE, CROP_SIZE], method=tf.image.ResizeMethod.AREA)
+        r = tf.image.resize_images(r, [crop_size, crop_size], method=tf.image.ResizeMethod.AREA)
 
         return r
 
     with tf.name_scope('input_images'):
-        input_images = tf.expand_dims(transform(inputs), 0)
+        input_images = tf.expand_dims(transform(inputs, crop_size), 0)
 
     with tf.name_scope('target_images'):
-        target_images = tf.expand_dims(transform(targets), 0)
+        target_images = tf.expand_dims(transform(targets, crop_size), 0)
 
     return input_images, target_images
 
@@ -185,9 +184,9 @@ def convert(image):
     return tf.image.convert_image_dtype(image, dtype=tf.uint8, saturate=True, name='output')  # output tensor
 
 
-def generate_output(x):
+def generate_output(x, crop_size):
     with tf.name_scope('generate_output'):
-        test_inputs, test_targets = process_image(x)
+        test_inputs, test_targets = process_image(x, crop_size)
 
         # inputs and targets are [batch_size, height, width, channels]
         model = create_model(test_inputs, test_targets)
@@ -204,14 +203,15 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--model-input', dest='input_folder', type=str, help='Model folder to import.')
     parser.add_argument('--model-output', dest='output_folder', type=str, help='Model (reduced) folder to export.')
+    parser.add_argument('--crop-size', dest='crop_size', default=512 type=str, help='Input image size')
     args = parser.parse_args()
 
     if not os.path.exists(os.path.join('./', 'pose2pose-reduced-model')):
         os.makedirs(os.path.join('./', 'pose2pose-reduced-model'))
     # os.makedirs('pose2pose-reduced-model', exist_ok=True)
 
-    x = tf.placeholder(tf.uint8, shape=(256, 512, 3), name='image_tensor')  # input tensor
-    y = generate_output(x)
+    x = tf.placeholder(tf.uint8, shape=(CROP_SIZE, 512, 3), name='image_tensor')  # input tensor
+    y = generate_output(x, args.crop_size)
 
     with tf.Session() as sess:
         # Restore original model
