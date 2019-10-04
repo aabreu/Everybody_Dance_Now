@@ -203,7 +203,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--model-input', dest='input_folder', type=str, help='Model folder to import.')
     parser.add_argument('--model-output', dest='output_folder', type=str, help='Model (reduced) folder to export.')
-    parser.add_argument('--crop-size', dest='crop_size', default=512, type=str, help='Input image size')
+    parser.add_argument('--crop-size', dest='crop_size', default=512, type=int, help='Input image size')
     args = parser.parse_args()
 
     if not os.path.exists(os.path.join('./', 'pose2pose-reduced-model')):
