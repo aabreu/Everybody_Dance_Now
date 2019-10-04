@@ -5,11 +5,9 @@ import os
 import numpy as np
 import tensorflow as tf
 
-CROP_SIZE = 256
-
 OPENPOSE_ROOT = os.environ["OPENPOSE_ROOT"]
 
-def resize(image):
+def resize(image, crop_size):
     """Crop and resize image for pix2pix."""
     height = image.shape[0]
     width = image.shape[1]
@@ -19,7 +17,7 @@ def resize(image):
         oh = (height - size) // 2
         ow = (width - size) // 2
         cropped_image = image[oh:(oh + size), ow:(ow + size)]
-        image_resize = cv2.resize(cropped_image, (CROP_SIZE, CROP_SIZE))
+        image_resize = cv2.resize(cropped_image, (crop_size, crop_size))
         return image_resize
 
 
@@ -76,13 +74,13 @@ def main():
         resize_binary = cv2.cvtColor(resize_gray, cv2.COLOR_GRAY2RGB)
 
         # generate prediction
-        combined_image = np.concatenate([resize(resize_binary), resize(rgb_resize)], axis=1)
+        combined_image = np.concatenate([resize(resize_binary, args.crop_size), resize(rgb_resize, args.crop_size)], axis=1)
         image_rgb = cv2.cvtColor(combined_image, cv2.COLOR_BGR2RGB)  # OpenCV uses BGR instead of RGB
         generated_image = sess.run(output_tensor, feed_dict={image_tensor: image_rgb})
         image_bgr = cv2.cvtColor(np.squeeze(generated_image), cv2.COLOR_RGB2BGR)
-        image_normal = np.concatenate([resize(rgb_resize), image_bgr], axis=1)
-        image_pose = np.concatenate([resize(resize_binary), image_bgr], axis=1)
-        image_all = np.concatenate([resize(rgb_resize), resize(resize_binary), image_bgr], axis=1)
+        image_normal = np.concatenate([resize(rgb_resize, args.crop_size), image_bgr], axis=1)
+        image_pose = np.concatenate([resize(resize_binary, args.crop_size), image_bgr], axis=1)
+        image_all = np.concatenate([resize(rgb_resize, args.crop_size), resize(resize_binary, args.crop_size), image_bgr], axis=1)
 
         if args.display == 0:
             cv2.imshow('pose2pose', image_normal)
@@ -106,5 +104,6 @@ if __name__ == '__main__':
     parser.add_argument('--show', dest='display', type=int, default=2, choices=[0, 1, 2],
                         help='0 shows the normal input; 1 shows the pose; 2 shows the normal input and pose')
     parser.add_argument('--tf-model', dest='frozen_model_file', type=str, default='pose2pose-reduced-model/frozen_model.pb',help='Frozen TensorFlow model file.')
+    parser.add_argument('--crop-size', dest='crop_size', type=str, default=512,help='Frozen TensorFlow model file.')
     args = parser.parse_args()
     main()
