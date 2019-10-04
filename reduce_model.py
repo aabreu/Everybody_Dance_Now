@@ -210,7 +210,7 @@ if __name__ == '__main__':
         os.makedirs(os.path.join('./', 'pose2pose-reduced-model'))
     # os.makedirs('pose2pose-reduced-model', exist_ok=True)
 
-    x = tf.placeholder(tf.uint8, shape=(CROP_SIZE, 512, 3), name='image_tensor')  # input tensor
+    x = tf.placeholder(tf.uint8, shape=(args.crop_size, args.crop_size * 2, 3), name='image_tensor')  # input tensor
     y = generate_output(x, args.crop_size)
 
     with tf.Session() as sess:
